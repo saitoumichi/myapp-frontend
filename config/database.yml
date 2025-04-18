@@ -1,0 +1,4 @@
+# config/database.yml
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>
