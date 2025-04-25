@@ -30,15 +30,16 @@ export default function JobForm() {
       })
       .then(() => {
         alert("求人を投稿しました！");
-        setTitle("");
-        setDescription("");
-        setCategoryId("");
+  
+        // ✅ 投稿成功後に一覧ページへ遷移
+        window.location.href = "/jobs";
       })
       .catch((err) => {
         console.error("投稿エラー:", err);
         alert("投稿に失敗しました");
       });
   };
+  
   return (
     <form onSubmit={handleSubmit} className="p-6 border rounded shadow max-w-xl mx-auto mt-6">
       <h2 className="text-xl font-bold mb-4">求人を投稿する</h2>
@@ -60,7 +61,11 @@ export default function JobForm() {
         required
       />
 
-      <select
+<label htmlFor="category" className="block mb-2 font-medium">
+  カテゴリ
+</label>
+<select
+  id="category"
         value={categoryId}
         onChange={(e) => setCategoryId(e.target.value)}
         className="block w-full mb-4 p-2 border rounded"
@@ -77,6 +82,8 @@ export default function JobForm() {
       <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         投稿
       </button>
+
+
     </form>
   );
 }

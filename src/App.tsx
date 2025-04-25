@@ -1,9 +1,10 @@
 // ✅ フロントエンド: 年収フィルター（セレクトボックス）追加
 // src/App.tsx
-import React from 'react';
-import { useState, useEffect } from "react";// 状態を定義する方法としてuseStateなどのAPIが用意されています。
+import React, { useState, useEffect } from "react";// 状態を定義する方法としてuseStateなどのAPIが用意されています。
 import axios from "axios";
 // import JobForm from "./components/JobForm";
+import { HashRouter, Routes, Route } from 'react-router-dom';import JobsPage from "./pages/JobsPage";
+import JobForm from "./components/JobForm";
 axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL;
 
 export default function App() {
@@ -46,6 +47,13 @@ const [view, setView] = useState<'search' | 'post'>('search');
 //引数に初期値searchをとり、配列で状態値stateと状態を更新するための関数setViewを返す
 // 'search' | 'post' と型を絞っていることで、タイプミスも防げるようになってます
 
+type Job = {
+  id: number;
+  title: string;
+  salary: number;
+  category:string;
+};
+
 // {/*募集要項 */}
   const jobList = [
     { id: 1, title: "Webエンジニア募集", category: "エンジニア", salary: 600 },
@@ -72,15 +80,23 @@ const [view, setView] = useState<'search' | 'post'>('search');
   const [newJobTitle, setNewJobTitle] = useState('');
   const [newJobCategory, setNewJobCategory] = useState('');
   const [newJobSalary, setNewJobSalary] = useState('');
-  const [jobs, setJobs] = useState(jobList);
-// {/*ペーじ */}
+  const [jobs, setJobs] = useState<Job[]>(jobList);
+  // {/*ペーじ */}
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 10; // 1ページに表示する件数
 
+
   useEffect(() => {
     axios
-    .get("https://my-rails-api.herokuapp.com/api/v1/jobs")
-    .then((res) => setJobs(res.data))
+    .get(`${process.env.REACT_APP_API_URL}/api/v1/jobs`)
+    .then((res) => {
+      const transformedJobs: Job[] = res.data.map((job: any) => ({
+        id: job.id,
+        title: job.title,
+        salary: job.salary,
+        category: job.category_name || job.category?.name || "未分類", // 柔軟に対応
+      }));
+      setJobs((prevJobs) => [...prevJobs, ...transformedJobs]);    })
       .catch((err) => console.error("求人取得エラー:", err));
   }, []);
 
@@ -126,6 +142,7 @@ const handleNextPage = () => {
     }
 
     const categoryId = allCategories.indexOf(newJobCategory) + 1;
+    console.log("カテゴリID:", categoryId);
 
     const jobData = {
       job: {
@@ -135,18 +152,22 @@ const handleNextPage = () => {
       },
     };
     
-    axios.post("https://my-rails-api-d0b1f08f77ea.herokuapp.com/api/v1/jobs", jobData)
-
+    axios.post(`${process.env.REACT_APP_API_URL}/api/v1/jobs`, jobData)
+    .then((res) => {
+      const newJob = {
+        id: res.data.id,
+        title: res.data.title,
+        salary: res.data.salary,
+        category: allCategories[categoryId - 1],
+      };
+      setJobs((prev) => [...prev, newJob]);
+      setNewJobTitle('');
+      setNewJobCategory('');
+      setNewJobSalary('');
+      setView('search');
+      setCurrentPage(1);
+    })
     
-  axios.post(`${process.env.REACT_APP_API_URL}/api/v1/jobs`, jobData)
-      .then((res) => {
-        setJobs((prev) => [...prev, res.data]);
-        setNewJobTitle('');
-        setNewJobCategory('');
-        setNewJobSalary('');
-        setView('search');
-        setCurrentPage(1);
-      })
       .catch((err) => {
         console.error("投稿エラー:", err);
         alert("投稿に失敗しました");
@@ -155,6 +176,11 @@ const handleNextPage = () => {
 
   return (
     <div>
+<HashRouter>      <Routes>
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/post" element={<JobForm />} />
+      </Routes>
+      </HashRouter>
     {/* ヘッダー */}
     <header className="bg-blue-950 text-white p-5">
       <div className="flex justify-between items-center">
@@ -168,9 +194,9 @@ const handleNextPage = () => {
 
     {view === 'search' && (
                 //求人検索アプリから下
-    <main className="flex flex-row h-screen">
+    <main className="flex-1 flex">
       {/* サイドフィルター左 */}
-      <aside className="bg-gray-200 p-4 w-1/4 h-screen overflow-y-auto">
+      <aside className="bg-gray-200 p-4 w-1/4 overflow-y-auto">
         <h2 className="text-sm font-bold mb-2 text-black">求人カテゴリ</h2>
         <ul className="space-y-2">
           {allCategories.map((cat) => (
@@ -286,7 +312,7 @@ const handleNextPage = () => {
 >
 
   <option value=""> </option>
-  {Array.from({ length: 10 }, (_, i) => (i + 1) * 100).map((amount) => (
+  {Array.from({ length: 20 }, (_, i) => (i + 1) * 50).map((amount) => (
     <option key={amount} value={amount}>
       {amount} 万円
     </option>
